@@ -1,0 +1,94 @@
+# Low-Code No-Code for Rapid Prototyping — Course Stack
+# Fall 2026 | Purdue Fort Wayne
+#
+# Services:
+#   baserow        http://localhost:8080   (no-code database)
+#   n8n            http://localhost:5678   (workflow automation)
+#   tooljet        http://localhost:3000   (internal tools / admin panels)
+#   labs-postgres  localhost:5433          (Postgres for ToolJet labs; user: student)
+#
+# Quick start (see Docker_Setup_Guide.md for the full walkthrough):
+#   cp .env.example .env      # then set the labs Postgres password
+#   docker compose pull
+#   docker compose up -d
+#
+# INSTRUCTOR NOTE: image tags below were chosen when this file was authored.
+# Before the Week 2 stack-up session, verify each tag against the project's
+# current stable release and test the full stack on macOS (Intel + Apple
+# Silicon), Windows/WSL2, and Linux.
+
+services:
+
+  baserow:
+    # All-in-one image: bundles its own Postgres + Redis internally.
+    image: baserow/baserow:1.30.1
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      BASEROW_PUBLIC_URL: http://localhost:8080
+    volumes:
+      - baserow_data:/baserow/data
+
+  n8n:
+    # PIN BEFORE SEMESTER: replace `latest` with the version you smoke-tested.
+    # `latest` can shift mid-semester and break a stack that was working.
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      # Required for login over plain http://localhost
+      N8N_SECURE_COOKIE: "false"
+      WEBHOOK_URL: http://localhost:5678/
+      GENERIC_TIMEZONE: America/Indiana/Indianapolis
+      TZ: America/Indiana/Indianapolis
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  tooljet:
+    # `tooljet/try` is ToolJet's official all-in-one trial image (bundles its
+    # own internal Postgres) — chosen over the multi-container production
+    # layout to keep the course stack simple. Fine for coursework; not for
+    # production.
+    # PIN BEFORE SEMESTER: replace `latest` with the version you smoke-tested.
+    image: tooljet/try:latest
+    restart: unless-stopped
+    # The try image currently ships amd64-only; this line makes it run under
+    # emulation on Apple Silicon. Remove if an arm64 tag is available.
+    platform: linux/amd64
+    ports:
+      - "3000:80"
+    volumes:
+      - tooljet_data:/var/lib/postgresql/13/main
+
+  labs-postgres:
+    # A clean Postgres instance for Week 5+ ToolJet labs — this is the
+    # database YOUR dashboards will query. Kept separate from the databases
+    # embedded inside Baserow/ToolJet, which are their private business.
+    image: postgres:16
+    restart: unless-stopped
+    ports:
+      # Host port 5433 to avoid colliding with any Postgres already on
+      # your machine. Connect with: psql -h localhost -p 5433 -U student labs
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: student
+      POSTGRES_PASSWORD: ${LABS_POSTGRES_PASSWORD}
+      POSTGRES_DB: labs
+    volumes:
+      - labs_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U student -d labs"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  baserow_data:
+  n8n_data:
+  tooljet_data:
+  labs_pg_data:
