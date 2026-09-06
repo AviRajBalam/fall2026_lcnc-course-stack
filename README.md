@@ -4,7 +4,7 @@
 - Date: September 01, 2026
 - Operating system and version: macOS Tahoe 26.6.2
 - Docker Desktop version: 29.7.2
-- Git commit hash for this setup: 329f5a86d09dce7b2040a3ef6ccef4256b52daac
+- Git commit hash for this setup: b4c5c0ae47c358a2d642b6474ec75f88a94b5671
 
 ## Service verification
 | Service | Endpoint or command | Result | Evidence filename or safe note |
